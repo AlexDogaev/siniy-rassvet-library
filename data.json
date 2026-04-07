@@ -22,8 +22,32 @@
         { "title": "Экспресс на Яндекс Маркете", "url": "https://t.me/ozonbluerise/2943" }
       ]
     },
-    { "title": "Важные посты по Честному Знаку", "type": "docx", "category": "Регулирование", "desc": "Всё самое важное про маркировку и систему Честный Знак.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20Честному%20Знаку.docx&name=Важные%20посты%20по%20Честному%20Знаку.docx" },
-    { "title": "Важные посты по «белому» ввозу", "type": "docx", "category": "ВЭД и логистика", "desc": "Подборка постов про белый импорт и легальный ввоз товаров.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20белому%20ввозу.docx&name=Важные%20посты%20по%20белому%20ввозу.docx&nosw=1" },
+    {
+      "title": "Важные посты по Честному Знаку",
+      "type": "docx",
+      "category": "Регулирование",
+      "desc": "Всё самое важное про маркировку и систему Честный Знак.",
+      "slug": "chestny-znak",
+      "links": [
+        { "title": "Импорт из Киргизии в нынешних реалиях", "url": "https://t.me/ozonbluerise/2634" },
+        { "title": "Дайджест маркировки на конец 2025 года", "url": "https://t.me/ozonbluerise/2692" },
+        { "title": "Дайджест маркировки на начало 2026 года", "url": "https://t.me/ozonbluerise/2785" },
+        { "title": "Маркировка при импорте из ЕАЭС", "url": "https://t.me/ozonbluerise/2820" },
+        { "title": "GTIN в карточках товара на Ozon", "url": "https://t.me/ozonbluerise/2912" },
+        { "title": "FBO или FBS: как селлеру не «потерять» коды маркировки", "url": "https://max.ru/ozonbluerise/AZ0lT7Oif0Q" }
+      ]
+    },
+    {
+      "title": "Важные посты по «белому» ввозу",
+      "type": "docx",
+      "category": "ВЭД и логистика",
+      "desc": "Подборка постов про белый импорт и легальный ввоз товаров.",
+      "slug": "bely-vvoz",
+      "links": [
+        { "title": "Какие документы нужны при белом ввозе из Китая", "url": "https://t.me/ozonbluerise/2854" },
+        { "title": "Подводные камни белого ввоза", "url": "https://max.ru/ozonbluerise/AZzycO2ITfQ" }
+      ]
+    },
     { "title": "Важные посты по логистике", "type": "docx", "category": "ВЭД и логистика", "desc": "Логистика, доставка, склады — ключевые материалы.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20логистике.docx&name=Важные%20посты%20по%20логистике.docx&nosw=1" },
     { "title": "Важные посты по маркетингу", "type": "docx", "category": "Маркетинг", "desc": "Подборка постов про продвижение и маркетинг.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20маркетингу.docx&name=Важные%20посты%20по%20маркетингу.docx" },
     { "title": "Важные посты по налогам и финансам", "type": "docx", "category": "Налоги и финансы", "desc": "Налоги, бухгалтерия, финансовые вопросы селлеров.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20налогам%20и%20финансам.docx&name=Важные%20посты%20по%20налогам%20и%20финансам.docx" },
