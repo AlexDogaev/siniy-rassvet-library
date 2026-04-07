@@ -49,35 +49,8 @@
 
 <script>
 const FOLDER_URL = "https://disk.yandex.ru/d/9DQ_8k0wHn9A2Q";
-const items = [
-  { title: "Шаблоны писем и претензий", type: "folder", category: "Документы и шаблоны", desc: "Готовые шаблоны для деловой переписки и претензий.", children: [
-      "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FПисьмо%20в%20ТП%20о%20возобновлении%20видимости%20товара%20в%20регионах%20.docx&name=Письмо%20в%20ТП%20о%20возобновлении%20видимости%20товара%20в%20регионах%20.docx&nosw=1",
-      "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FПисьмо%20в%20ТП%20о%20закрытии%20видимости%20товара%20в%20регионах.docx&name=Письмо%20в%20ТП%20о%20закрытии%20видимости%20товара%20в%20регионах.docx&nosw=1",
-      "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FШаблон_претензии_потеря_товара_Озон.docx&name=Шаблон_претензии_потеря_товара_Озон.docx"
-    ] },
-  { title: "Важные посты о Яндекс Маркет", type: "docx", category: "Маркетплейсы", desc: "Подборка ключевых постов канала про работу с Яндекс Маркет.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20о%20Яндекс%20Маркет.docx&name=Важные%20посты%20о%20Яндекс%20Маркет.docx" },
-  { title: "Важные посты по Честному Знаку", type: "docx", category: "Регулирование", desc: "Всё самое важное про маркировку и систему Честный Знак.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20Честному%20Знаку.docx&name=Важные%20посты%20по%20Честному%20Знаку.docx" },
-  { title: "Важные посты по «белому» ввозу", type: "docx", category: "ВЭД и логистика", desc: "Подборка постов про белый импорт и легальный ввоз товаров.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20белому%20ввозу.docx&name=Важные%20посты%20по%20белому%20ввозу.docx&nosw=1" },
-  { title: "Важные посты по логистике", type: "docx", category: "ВЭД и логистика", desc: "Логистика, доставка, склады — ключевые материалы.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20логистике.docx&name=Важные%20посты%20по%20логистике.docx&nosw=1" },
-  { title: "Важные посты по маркетингу", type: "docx", category: "Маркетинг", desc: "Подборка постов про продвижение и маркетинг.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20маркетингу.docx&name=Важные%20посты%20по%20маркетингу.docx" },
-  { title: "Важные посты по налогам и финансам", type: "docx", category: "Налоги и финансы", desc: "Налоги, бухгалтерия, финансовые вопросы селлеров.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20налогам%20и%20финансам.docx&name=Важные%20посты%20по%20налогам%20и%20финансам.docx" },
-  { title: "Важные статьи про нейросети", type: "docx", category: "Нейросети", desc: "Подборка материалов о применении ИИ в бизнесе.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20про%20нейросети.docx&name=Важные%20посты%20про%20нейросети.docx&nosw=1" },
-  { title: "Книги, которые рекомендуют наши подписчики", type: "docx", category: "Обучение", desc: "Список книг от сообщества канала.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FКниги%2C%20которые%20рекомендуют%20наши%20подписчики.docx&name=Книги%2C%20которые%20рекомендуют%20наши%20подписчики.docx&nosw=1" },
-  { title: "Материалы Александра Догаева", type: "docx", category: "Авторские материалы", desc: "Сборник материалов и постов Александра Догаева.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FМатериалы%20Александра%20Догаева.docx&name=Материалы%20Александра%20Догаева.docx" },
-  { title: "Наши авторы", type: "docx", category: "Авторские материалы", desc: "Список авторов канала и их публикации.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FНаши%20авторы.docx&name=Наши%20авторы.docx&nosw=1" },
-  { title: "Посты про Wildberries", type: "docx", category: "Маркетплейсы", desc: "Подборка ключевых постов про работу с Wildberries.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FПосты%20по%20Wildberries.docx&name=Посты%20по%20Wildberries.docx&nosw=1" },
-  { title: "Ссылки на Базу Знаний", type: "xlsx", category: "База знаний", desc: "Таблица со ссылками на статьи Базы Знаний.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FСсылки%20на%20Базу%20Знаний.xlsx&name=Ссылки%20на%20Базу%20Знаний.xlsx&nosw=1" },
-  { title: "Ссылки на Курсы и Калькулятор", type: "docx", category: "Обучение", desc: "Ссылки на обучающие курсы и полезный калькулятор.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FСсылки%20на%20КУРСЫ%20и%20КАЛЬКУЛЯТОР.docx&name=Ссылки%20на%20КУРСЫ%20и%20КАЛЬКУЛЯТОР.docx&nosw=1" },
-  { title: "Ссылки на партнеров, которым мы доверяем", type: "docx", category: "Партнёры", desc: "Список проверенных партнёров канала.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FСсылки%20на%20партнеров%2C%20которым%20мы%20доверяем.docx&name=Ссылки%20на%20партнеров%2C%20которым%20мы%20доверяем.docx" },
-  { title: "Ссылки на чаты и рубрики Синего Рассвета", type: "docx", category: "Сообщество", desc: "Навигация по чатам и рубрикам канала Синий Рассвет.", url: "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FСсылки%20на%20чаты%20и%20рубрики%20Синего%20Рассвета.docx&name=Ссылки%20на%20чаты%20и%20рубрики%20Синего%20Рассвета.docx" },
-];
-
-const iconSvg = (type) => {
-  if (type === "folder") return '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
-  if (type === "xlsx") return '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>';
-  return '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
-};
-
+let items = [];
+let cats = ["Все"];
 let activeCat = "Все";
 let query = "";
 const expanded = new Set();
@@ -90,12 +63,28 @@ function prettyName(url) {
       const parts = decodeURIComponent(u.pathname).split("/");
       name = parts[parts.length - 1] || url;
     }
-    name = name.replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " ").trim();
-    return name;
+    return name.replace(/\.[a-z0-9]+$/i, "").replace(/_/g, " ").trim();
   } catch (e) { return url; }
 }
 
-const cats = ["Все", ...Array.from(new Set(items.map(i => i.category)))];
+const iconSvg = (type) => {
+  if (type === "folder") return '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
+  if (type === "xlsx") return '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>';
+  return '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+};
+
+async function loadData() {
+  try {
+    const res = await fetch("./data.json", { cache: "no-store" });
+    const data = await res.json();
+    items = data.items || [];
+    cats = ["Все", ...Array.from(new Set(items.map(i => i.category)))];
+    render();
+  } catch (e) {
+    document.getElementById("grid").innerHTML =
+      '<div class="col-span-full text-center text-red-500 py-10">Не удалось загрузить data.json. Если открываете файл локально (file://), используйте локальный HTTP-сервер или GitHub Pages.</div>';
+  }
+}
 
 function render() {
   const catsEl = document.getElementById("cats");
@@ -161,7 +150,7 @@ function render() {
 }
 
 document.getElementById("search").addEventListener("input", e => { query = e.target.value; render(); });
-render();
+loadData();
 </script>
 </body>
 </html>
