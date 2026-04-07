@@ -11,7 +11,17 @@
         "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FШаблон_претензии_потеря_товара_Озон.docx&name=Шаблон_претензии_потеря_товара_Озон.docx"
       ]
     },
-    { "title": "Важные посты о Яндекс Маркет", "type": "docx", "category": "Маркетплейсы", "desc": "Подборка ключевых постов канала про работу с Яндекс Маркет.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20о%20Яндекс%20Маркет.docx&name=Важные%20посты%20о%20Яндекс%20Маркет.docx" },
+    {
+      "title": "Важные посты о Яндекс Маркет",
+      "type": "docx",
+      "category": "Маркетплейсы",
+      "desc": "Подборка ключевых постов канала про работу с Яндекс Маркет.",
+      "slug": "yandex-market",
+      "links": [
+        { "title": "Зачем торговать на Яндекс Маркете?", "url": "https://t.me/ozonbluerise/2915" },
+        { "title": "Экспресс на Яндекс Маркете", "url": "https://t.me/ozonbluerise/2943" }
+      ]
+    },
     { "title": "Важные посты по Честному Знаку", "type": "docx", "category": "Регулирование", "desc": "Всё самое важное про маркировку и систему Честный Знак.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20Честному%20Знаку.docx&name=Важные%20посты%20по%20Честному%20Знаку.docx" },
     { "title": "Важные посты по «белому» ввозу", "type": "docx", "category": "ВЭД и логистика", "desc": "Подборка постов про белый импорт и легальный ввоз товаров.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20белому%20ввозу.docx&name=Важные%20посты%20по%20белому%20ввозу.docx&nosw=1" },
     { "title": "Важные посты по логистике", "type": "docx", "category": "ВЭД и логистика", "desc": "Логистика, доставка, склады — ключевые материалы.", "url": "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FВажные%20посты%20по%20логистике.docx&name=Важные%20посты%20по%20логистике.docx&nosw=1" },

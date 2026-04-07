@@ -34,11 +34,13 @@
       </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-6 py-8">
+    <main id="list-view" class="max-w-5xl mx-auto px-6 py-8">
       <div id="count" class="text-sm text-slate-500 mb-4"></div>
       <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       <div id="empty" class="text-center py-16 text-slate-400 hidden">Ничего не найдено</div>
     </main>
+
+    <main id="detail-view" class="max-w-3xl mx-auto px-6 py-8 hidden"></main>
 
     <footer class="max-w-5xl mx-auto px-6 py-10 text-center text-sm text-slate-400">
       Исходная библиотека на
@@ -73,13 +75,21 @@ const iconSvg = (type) => {
   return '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 };
 
+function slugify(s) {
+  return (s || "").toLowerCase()
+    .replace(/[^a-zа-яё0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getItemSlug(i) { return i.slug || slugify(i.title); }
+
 async function loadData() {
   try {
     const res = await fetch("./data.json", { cache: "no-store" });
     const data = await res.json();
     items = data.items || [];
     cats = ["Все", ...Array.from(new Set(items.map(i => i.category)))];
-    render();
+    route();
   } catch (e) {
     document.getElementById("grid").innerHTML =
       '<div class="col-span-full text-center text-red-500 py-10">Не удалось загрузить data.json. Если открываете файл локально (file://), используйте локальный HTTP-сервер или GitHub Pages.</div>';
@@ -132,6 +142,13 @@ function render() {
           ${head}${list}
         </div>`;
     }
+    if (Array.isArray(i.links)) {
+      return `
+        <a href="#/${getItemSlug(i)}"
+           class="group bg-white/90 border border-slate-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-md transition flex flex-col">
+          ${head}
+        </a>`;
+    }
     return `
       <a href="${i.url || FOLDER_URL}" target="_blank" rel="noopener"
          class="group bg-white/90 border border-slate-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-md transition flex flex-col">
@@ -149,6 +166,46 @@ function render() {
   });
 }
 
+function renderDetail(item) {
+  const linksHtml = (item.links || []).map(l => `
+    <a href="${l.url}" target="_blank" rel="noopener"
+       class="block bg-white/90 border border-slate-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-sm transition">
+      <div class="font-medium text-slate-900">${l.title}</div>
+      ${l.desc ? `<div class="text-sm text-slate-500 mt-1">${l.desc}</div>` : ""}
+      <div class="text-xs text-blue-600 mt-2 truncate">${l.url}</div>
+    </a>`).join("");
+
+  document.getElementById("detail-view").innerHTML = `
+    <a href="#/" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-blue-600 mb-6">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      Назад к библиотеке
+    </a>
+    <div class="mb-2 text-xs text-slate-400 uppercase tracking-wide">${item.category}</div>
+    <h2 class="text-3xl font-semibold tracking-tight mb-3">${item.title}</h2>
+    <p class="text-slate-500 mb-8">${item.desc}</p>
+    <div class="space-y-3">${linksHtml || '<div class="text-slate-400">Пока нет ссылок.</div>'}</div>`;
+}
+
+function route() {
+  const hash = location.hash.replace(/^#\/?/, "");
+  const listView = document.getElementById("list-view");
+  const detailView = document.getElementById("detail-view");
+  if (hash) {
+    const item = items.find(i => getItemSlug(i) === hash);
+    if (item && Array.isArray(item.links)) {
+      listView.classList.add("hidden");
+      detailView.classList.remove("hidden");
+      renderDetail(item);
+      window.scrollTo(0, 0);
+      return;
+    }
+  }
+  listView.classList.remove("hidden");
+  detailView.classList.add("hidden");
+  render();
+}
+
+window.addEventListener("hashchange", route);
 document.getElementById("search").addEventListener("input", e => { query = e.target.value; render(); });
 loadData();
 </script>
