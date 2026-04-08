@@ -104,9 +104,16 @@ function render() {
   catsEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { activeCat = b.dataset.cat; render(); }));
 
   const q = query.trim().toLowerCase();
+  function hay(i) {
+    const parts = [i.title, i.desc, i.category];
+    (i.links || []).forEach(l => { parts.push(l.title); parts.push(l.desc); });
+    (i.books || []).forEach(b => { parts.push(b.title); parts.push(b.author); parts.push(b.annotation); });
+    (i.children || []).forEach(c => { parts.push(c.title); parts.push(c.desc); });
+    return parts.filter(Boolean).join(" \n ").toLowerCase();
+  }
   const filtered = items.filter(i => {
     const mc = activeCat === "Все" || i.category === activeCat;
-    const mq = !q || i.title.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q) || i.category.toLowerCase().includes(q);
+    const mq = !q || hay(i).includes(q);
     return mc && mq;
   });
 
@@ -142,7 +149,7 @@ function render() {
           ${head}${list}
         </div>`;
     }
-    if (Array.isArray(i.links)) {
+    if (Array.isArray(i.links) || Array.isArray(i.books)) {
       return `
         <a href="#/${getItemSlug(i)}"
            class="group bg-white/90 border border-slate-200 rounded-2xl p-5 hover:border-blue-400 hover:shadow-md transition flex flex-col">
@@ -166,14 +173,36 @@ function render() {
   });
 }
 
+function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
 function renderDetail(item) {
-  const linksHtml = (item.links || []).map(l => `
-    <a href="${l.url}" target="_blank" rel="noopener"
-       class="block bg-white/90 border border-slate-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-sm transition">
-      <div class="font-medium text-slate-900">${l.title}</div>
-      ${l.desc ? `<div class="text-sm text-slate-500 mt-1">${l.desc}</div>` : ""}
-      <div class="text-xs text-blue-600 mt-2 truncate">${l.url}</div>
-    </a>`).join("");
+  let bodyHtml = "";
+  if (Array.isArray(item.books)) {
+    bodyHtml = `<div class="space-y-2">${item.books.map((b,idx)=>`
+      <details class="group bg-white/90 border border-slate-200 rounded-xl open:border-blue-400 open:shadow-sm transition">
+        <summary class="cursor-pointer list-none p-4 flex items-start justify-between gap-3">
+          <div>
+            <div class="font-medium text-slate-900 leading-snug">${escapeHtml(b.title)}</div>
+            ${b.author ? `<div class="text-sm text-slate-500 mt-0.5">${escapeHtml(b.author)}</div>` : ""}
+          </div>
+          <svg class="w-4 h-4 mt-1 flex-shrink-0 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <div class="px-4 pb-4 pt-0 text-sm text-slate-600 leading-relaxed whitespace-pre-line border-t border-slate-100">${escapeHtml(b.annotation)}</div>
+      </details>`).join("")}</div>
+      ${item.footer ? `<div class="mt-6 text-sm text-slate-500">${escapeHtml(item.footer)}</div>` : ""}`;
+  } else {
+    const linksHtml = (item.links || []).map(l => {
+      const tag = l.url ? "a" : "div";
+      const attrs = l.url ? `href="${l.url}" target="_blank" rel="noopener"` : "";
+      const hover = l.url ? "hover:border-blue-400 hover:shadow-sm" : "";
+      return `<${tag} ${attrs} class="block bg-white/90 border border-slate-200 rounded-xl p-4 ${hover} transition">
+        <div class="font-medium text-slate-900">${l.title}</div>
+        ${l.desc ? `<div class="text-sm text-slate-500 mt-1">${l.desc}</div>` : ""}
+        ${l.url ? `<div class="text-xs text-blue-600 mt-2 truncate">${l.url}</div>` : ""}
+      </${tag}>`;
+    }).join("");
+    bodyHtml = `<div class="space-y-3">${linksHtml || '<div class="text-slate-400">Пока нет ссылок.</div>'}</div>`;
+  }
 
   document.getElementById("detail-view").innerHTML = `
     <a href="#/" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-blue-600 mb-6">
@@ -183,7 +212,7 @@ function renderDetail(item) {
     <div class="mb-2 text-xs text-slate-400 uppercase tracking-wide">${item.category}</div>
     <h2 class="text-3xl font-semibold tracking-tight mb-3">${item.title}</h2>
     <p class="text-slate-500 mb-8">${item.desc}</p>
-    <div class="space-y-3">${linksHtml || '<div class="text-slate-400">Пока нет ссылок.</div>'}</div>`;
+    ${bodyHtml}`;
 }
 
 function route() {
@@ -192,7 +221,7 @@ function route() {
   const detailView = document.getElementById("detail-view");
   if (hash) {
     const item = items.find(i => getItemSlug(i) === hash);
-    if (item && Array.isArray(item.links)) {
+    if (item && (Array.isArray(item.links) || Array.isArray(item.books))) {
       listView.classList.add("hidden");
       detailView.classList.remove("hidden");
       renderDetail(item);
@@ -206,7 +235,15 @@ function route() {
 }
 
 window.addEventListener("hashchange", route);
-document.getElementById("search").addEventListener("input", e => { query = e.target.value; render(); });
+document.getElementById("search").addEventListener("input", e => {
+  query = e.target.value;
+  if (location.hash && location.hash !== "#/") {
+    history.replaceState(null, "", "#/");
+    document.getElementById("detail-view").classList.add("hidden");
+    document.getElementById("list-view").classList.remove("hidden");
+  }
+  render();
+});
 loadData();
 </script>
 </body>
