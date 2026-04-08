@@ -17,13 +17,13 @@
   <div class="relative z-10">
     <header class="border-b border-slate-200/70 bg-white/80 backdrop-blur">
       <div class="max-w-5xl mx-auto px-6 py-10">
-        <div class="flex items-center gap-3 mb-3">
+        <a href="#/" class="flex items-center gap-3 mb-3 group" aria-label="На главную">
           <img src="./logo.png" alt="Синий Рассвет" class="w-12 h-12 rounded-xl object-contain" />
           <div>
-            <h1 class="text-2xl font-semibold tracking-tight">Библиотека Синего Рассвета</h1>
+            <h1 class="text-2xl font-semibold tracking-tight group-hover:text-blue-600 transition">Библиотека Синего Рассвета</h1>
             <p class="text-sm text-slate-500">Полезные материалы и ссылки для подписчиков канала</p>
           </div>
-        </div>
+        </a>
 
         <div class="relative mt-6">
           <input id="search" type="text" placeholder="Поиск по материалам…"
@@ -104,16 +104,35 @@ function render() {
   catsEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { activeCat = b.dataset.cat; render(); }));
 
   const q = query.trim().toLowerCase();
+  function decodeName(u) {
+    try {
+      const m = u.match(/[?&]name=([^&]+)/);
+      if (m) return decodeURIComponent(m[1].replace(/\+/g, " "));
+      return decodeURIComponent(u.split("/").pop().split("?")[0]);
+    } catch (e) { return u; }
+  }
   function hay(i) {
     const parts = [i.title, i.desc, i.category];
-    (i.links || []).forEach(l => { parts.push(l.title); parts.push(l.desc); });
+    (i.links || []).forEach(l => { parts.push(l.title); parts.push(l.desc); parts.push(l.url); });
     (i.books || []).forEach(b => { parts.push(b.title); parts.push(b.author); parts.push(b.annotation); });
-    (i.children || []).forEach(c => { parts.push(c.title); parts.push(c.desc); });
+    (i.children || []).forEach(c => {
+      if (typeof c === "string") parts.push(decodeName(c));
+      else { parts.push(c.title); parts.push(c.desc); }
+    });
     return parts.filter(Boolean).join(" \n ").toLowerCase();
+  }
+  // Простое русское "стемминг"-сопоставление: ищем подстроку q;
+  // если не нашли и q длиннее 4 символов — пробуем укороченные префиксы (письмо → письм → пись).
+  function matches(text, q) {
+    if (text.includes(q)) return true;
+    for (let n = q.length - 1; n >= 4; n--) {
+      if (text.includes(q.slice(0, n))) return true;
+    }
+    return false;
   }
   const filtered = items.filter(i => {
     const mc = activeCat === "Все" || i.category === activeCat;
-    const mq = !q || hay(i).includes(q);
+    const mq = !q || matches(hay(i), q);
     return mc && mq;
   });
 
