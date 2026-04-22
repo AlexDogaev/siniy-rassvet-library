@@ -4,15 +4,17 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Библиотека Синего Рассвета</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  mark { background: #fef08a; border-radius: 2px; padding: 0 2px; font-style: normal; color: inherit; }
 </style>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800">
 <div class="min-h-screen relative">
   <img src="./logo.png" alt="" aria-hidden="true"
-       class="pointer-events-none fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] max-w-[80vw] opacity-[0.06] select-none z-0" />
+       style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;max-width:80vw;opacity:0.12;pointer-events:none;user-select:none;z-index:0;"
+       class="pointer-events-none fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] max-w-[80vw] opacity-[0.12] select-none z-0" />
 
   <div class="relative z-10">
     <header class="border-b border-slate-200/70 bg-white/80 backdrop-blur">
@@ -57,6 +59,147 @@ let activeCat = "Все";
 let query = "";
 const expanded = new Set();
 
+// Семантические группы: все термины внутри группы считаются синонимами
+const TERM_GROUPS = [
+  ["реклама", "продвижение", "озз", "рнп", "дрр", "трафик", "ставки", "таргет", "спонсируемый", "баннер", "cpm", "cpc"],
+  ["аналитика", "анализ", "показатели", "метрики", "отчёт", "kpi", "дашборд", "статистика"],
+  ["юнит", "юнит-экономика", "маржинальность", "roi", "прибыль", "рентабельность", "маржа"],
+  ["финансы", "финансовый", "бюджет", "деньги", "капитал", "инвестиции", "денежный поток"],
+  ["налог", "налогообложение", "усн", "ндс", "бухгалтерия", "расходы", "учёт", "упрощённая", "налоговый", "фнс"],
+  ["маркировка", "честный знак", "чз", "gtin", "штрихкод", "киз", "упд", "экосбор", "эдо", "маркировать"],
+  ["логистика", "доставка", "склад", "fbo", "фбо", "fbs", "фбс", "поставки", "тарифы", "кластеры", "кросс-докинг", "бронирование"],
+  ["выкуп", "конверсия", "процент выкупа", "возврат", "отмена"],
+  ["wildberries", "вб", "вайлдберрис", "wb", "вайбс", "wibes"],
+  ["яндекс маркет", "ям", "яндекс.маркет", "yandex market", "экспресс"],
+  ["ozon", "озон"],
+  ["нейросети", "нейросеть", "ии", "ai", "claude", "клод", "искусственный интеллект", "гпт", "gpt", "chatgpt", "нейро"],
+  ["маркетинг", "бренд", "брендинг", "сегментация", "позиционирование", "стратегия", "аудитория", "айдентика", "4p", "save", "ltv", "jtbd", "job-to-be-done"],
+  ["карточки", "карточка", "контент", "инфографика", "seo", "ключи", "дизайн", "фото", "описание", "визуал", "главное фото"],
+  ["импорт", "ввоз", "вэд", "китай", "таможня", "кантон", "декларация", "еаэс", "киргизия", "белый ввоз"],
+  ["соинвест", "коинвест", "акции", "скидки", "баллы", "субсидии", "купон"],
+  ["ценообразование", "цена", "репрайсер", "ррц", "цены", "прайс"],
+  ["управление", "менеджмент", "команда", "сотрудники", "регламенты", "найм", "hr", "кадры", "мотивация"],
+  ["ассортимент", "матрица", "категория", "товар", "sku", "артикул", "новинка", "вывод товара"],
+  ["импорт", "ввоз", "вэд", "таможня"],
+];
+
+// Строим словарь синонимов из групп
+const SYNONYMS = {};
+TERM_GROUPS.forEach(group => {
+  group.forEach(term => { SYNONYMS[term] = group.filter(t => t !== term); });
+});
+
+let activeTerms = [];
+
+function expandQuery(q) {
+  const words = q.trim().split(/\s+/).filter(Boolean);
+  const e = new Set(words);
+  words.forEach(w => { if (SYNONYMS[w]) SYNONYMS[w].forEach(s => e.add(s)); });
+  return Array.from(e);
+}
+
+function termMatch(text, term) {
+  const t = (text || "").toLowerCase();
+  if (t.includes(term)) return 2;
+  if (term.length >= 4) {
+    for (let n = term.length - 1; n >= 4; n--) {
+      if (t.includes(term.slice(0, n))) return 1;
+    }
+  }
+  return 0;
+}
+
+function scoreItem(item, terms) {
+  let s = 0;
+  terms.forEach(t => {
+    s += termMatch(item.title, t) * 10;
+    s += termMatch(item.category, t) * 5;
+    s += termMatch(item.desc, t) * 3;
+    (item.links || []).forEach(l => { s += termMatch(l.title, t) * 2; s += termMatch(l.desc, t); });
+    (item.books || []).forEach(b => { s += termMatch(b.title, t) * 2; s += termMatch(b.author, t); });
+    (item.children || []).forEach(c => { if (typeof c === "string") s += termMatch(c, t); });
+  });
+  return s;
+}
+
+function highlight(text, terms) {
+  if (!terms || !terms.length || !text) return escapeHtml(text || "");
+  const lower = text.toLowerCase();
+  let r = escapeHtml(text);
+  const done = new Set();
+  terms.forEach(term => {
+    if (term.length < 3) return;
+    // Выбираем одну строку для подсветки: полный термин или лучший префикс
+    let toMark = null;
+    if (lower.includes(term)) {
+      toMark = term;
+    } else if (term.length >= 5) {
+      for (let n = term.length - 1; n >= 4; n--) {
+        const prefix = term.slice(0, n);
+        if (lower.includes(prefix)) { toMark = prefix; break; }
+      }
+    }
+    if (!toMark || done.has(toMark)) return;
+    done.add(toMark);
+    const re = new RegExp(toMark.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    r = r.replace(re, m => `<mark>${m}</mark>`);
+  });
+  return r;
+}
+
+function scoreLink(title, desc, parentTitle, terms) {
+  let s = 0;
+  terms.forEach(t => {
+    s += termMatch(title, t) * 10;
+    s += termMatch(desc, t) * 3;
+    s += termMatch(parentTitle, t) * 1;
+  });
+  return s;
+}
+
+function renderSearchResults(terms) {
+  const gridEl = document.getElementById("grid");
+  gridEl.className = "grid grid-cols-1 gap-2";
+  const results = [];
+  items.forEach(item => {
+    if (activeCat !== "Все" && item.category !== activeCat) return;
+    if (Array.isArray(item.links)) {
+      item.links.forEach(l => {
+        const s = scoreLink(l.title, l.desc || "", item.title, terms);
+        if (s > 0) results.push({ title: l.title, desc: l.desc || "", url: l.url || null, parent: item.title, category: item.category, type: item.type, score: s });
+      });
+    }
+    if (Array.isArray(item.books)) {
+      item.books.forEach(b => {
+        const s = scoreLink(b.title, b.author || "", item.title, terms);
+        if (s > 0) results.push({ title: b.title, desc: b.author || "", url: null, parent: item.title, category: item.category, type: item.type, score: s });
+      });
+    }
+    if (Array.isArray(item.children)) {
+      item.children.forEach(url => {
+        const name = prettyName(url);
+        const s = scoreLink(name, "", item.title, terms);
+        if (s > 0) results.push({ title: name, desc: "", url, parent: item.title, category: item.category, type: "docx", score: s });
+      });
+    }
+  });
+  results.sort((a, b) => b.score - a.score);
+  document.getElementById("count").textContent = "Найдено постов: " + results.length;
+  document.getElementById("empty").classList.toggle("hidden", results.length !== 0);
+  gridEl.innerHTML = results.map(r => {
+    const tag = r.url ? "a" : "div";
+    const attrs = r.url ? `href="${r.url}" target="_blank" rel="noopener"` : "";
+    return `<${tag} ${attrs} class="bg-white/90 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-blue-400 hover:shadow-sm transition">
+      <div style="width:28px;height:28px;flex-shrink:0;" class="rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">${iconSvg(r.type)}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="font-medium text-slate-900 text-sm leading-snug">${highlight(r.title, terms)}</div>
+        <div class="text-xs text-slate-400 mt-1">${escapeHtml(r.parent)} · ${escapeHtml(r.category)}</div>
+      </div>
+      ${r.url ? `<svg width="14" height="14" style="flex-shrink:0;" class="text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3h7v7M10 14L21 3M21 14v7H3V3h7"/></svg>` : ""}
+    </${tag}>`;
+  }).join("");
+}
+
 function prettyName(url) {
   try {
     const u = new URL(url);
@@ -70,9 +213,9 @@ function prettyName(url) {
 }
 
 const iconSvg = (type) => {
-  if (type === "folder") return '<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
-  if (type === "xlsx") return '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>';
-  return '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+  if (type === "folder") return '<svg width="16" height="16" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
+  if (type === "xlsx") return '<svg width="16" height="16" class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>';
+  return '<svg width="16" height="16" class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 };
 
 function slugify(s) {
@@ -83,17 +226,325 @@ function slugify(s) {
 
 function getItemSlug(i) { return i.slug || slugify(i.title); }
 
-async function loadData() {
-  try {
-    const res = await fetch("./data.json", { cache: "no-store" });
-    const data = await res.json();
-    items = data.items || [];
-    cats = ["Все", ...Array.from(new Set(items.map(i => i.category)))];
-    route();
-  } catch (e) {
-    document.getElementById("grid").innerHTML =
-      '<div class="col-span-full text-center text-red-500 py-10">Не удалось загрузить data.json. Если открываете файл локально (file://), используйте локальный HTTP-сервер или GitHub Pages.</div>';
-  }
+function loadData() {
+  const data = {
+  "items": [
+    {
+      "title": "Шаблоны писем и претензий",
+      "type": "folder",
+      "category": "Документы и шаблоны",
+      "desc": "Готовые шаблоны для деловой переписки и претензий.",
+      "children": [
+        "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FПисьмо%20в%20ТП%20о%20возобновлении%20видимости%20товара%20в%20регионах%20.docx&name=Письмо%20в%20ТП%20о%20возобновлении%20видимости%20товара%20в%20регионах%20.docx&nosw=1",
+        "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FПисьмо%20в%20ТП%20о%20закрытии%20видимости%20товара%20в%20регионах.docx&name=Письмо%20в%20ТП%20о%20закрытии%20видимости%20товара%20в%20регионах.docx&nosw=1",
+        "https://docs.yandex.ru/docs/view?url=ya-disk-public%3A%2F%2FPQoRblrNRSsHnQa%2FaVkes3JXi%2FpvdXTUPqI67Mmgpa3GMwZc3JwAl0rFIMwwctHZq%2FJ6bpmRyOJonT3VoXnDag%3D%3D%3A%2FШаблоны%20писем%20и%20претензий%2FШаблон_претензии_потеря_товара_Озон.docx&name=Шаблон_претензии_потеря_товара_Озон.docx"
+      ]
+    },
+    {
+      "title": "Важные посты о Яндекс Маркет",
+      "type": "docx",
+      "category": "Маркетплейсы",
+      "desc": "Подборка ключевых постов канала про работу с Яндекс Маркет.",
+      "slug": "yandex-market",
+      "links": [
+        { "title": "Зачем торговать на Яндекс Маркете?", "url": "https://t.me/ozonbluerise/2915" },
+        { "title": "Экспресс на Яндекс Маркете", "url": "https://t.me/ozonbluerise/2943" },
+        { "title": "Новая система подписок на Яндекс Маркете", "url": "https://max.ru/ozonbluerise/AZ1NDK_hXyw" }
+      ]
+    },
+    {
+      "title": "Важные посты по Честному Знаку",
+      "type": "docx",
+      "category": "Честный Знак",
+      "desc": "Всё самое важное про маркировку и систему Честный Знак.",
+      "slug": "chestny-znak",
+      "links": [
+        { "title": "Импорт из Киргизии в нынешних реалиях", "url": "https://t.me/ozonbluerise/2634" },
+        { "title": "Дайджест маркировки на конец 2025 года", "url": "https://t.me/ozonbluerise/2692" },
+        { "title": "Дайджест маркировки на начало 2026 года", "url": "https://t.me/ozonbluerise/2785" },
+        { "title": "Маркировка при импорте из ЕАЭС", "url": "https://t.me/ozonbluerise/2820" },
+        { "title": "GTIN в карточках товара на Ozon", "url": "https://t.me/ozonbluerise/2912" },
+        { "title": "FBO или FBS: как селлеру не «потерять» коды маркировки", "url": "https://max.ru/ozonbluerise/AZ0lT7Oif0Q" },
+        { "title": "Штрафы и отклонения", "url": "https://max.ru/ozonbluerise/AZ0BDNZqOiQ" },
+        { "title": "Расчёт экосбора и отчётность", "url": "https://max.ru/ozonbluerise/AZ0FVCuLJVs" },
+        { "title": "Контрактное производство: кто маркирует товар, если шьют они?", "url": "https://max.ru/ozonbluerise/AZ1JJRdxdvA" },
+        { "title": "Почему нельзя подписывать УПД вслепую", "url": "https://max.ru/ozonbluerise/AZ1swTubalw" },
+        { "title": "Отчёт о нанесении", "url": "https://max.ru/ozonbluerise/AZ2RPUfqEeY" }
+      ]
+    },
+    {
+      "title": "Важные посты по «белому» ввозу",
+      "type": "docx",
+      "category": "ВЭД и логистика",
+      "desc": "Подборка постов про белый импорт и легальный ввоз товаров.",
+      "slug": "bely-vvoz",
+      "links": [
+        { "title": "Какие документы нужны при белом ввозе из Китая", "url": "https://t.me/ozonbluerise/2854" },
+        { "title": "Подводные камни белого ввоза", "url": "https://max.ru/ozonbluerise/AZzycO2ITfQ" }
+      ]
+    },
+    {
+      "title": "Важные посты по логистике",
+      "type": "docx",
+      "category": "ВЭД и логистика",
+      "desc": "Логистика, доставка, склады — ключевые материалы.",
+      "slug": "logistics",
+      "links": [
+        { "title": "Считаем % выкупа по кластерам", "url": "https://vkvideo.ru/playlist/-231758405_5/video-231758405_456239065?linked=1" },
+        { "title": "Эфир по работе в Nepsell", "url": "https://vkvideo.ru/video-231758405_456239069" },
+        { "title": "Функции Excel, которые помогут в работе — часть 1", "url": "https://vkvideo.ru/video-231758405_456239070" },
+        { "title": "Функции Excel, которые помогут в работе — часть 2", "url": "https://vkvideo.ru/video-231758405_456239086" },
+        { "title": "Новые тарифы на логистику с 6 апреля", "url": "https://max.ru/ozonbluerise/AZzsBKx3bNk" },
+        { "title": "Обновления, вступающие в силу с 7.04.26", "url": "https://max.ru/ozonbluerise/AZ0g0oHnXXE" },
+        { "title": "Что теперь с бронированием поставок (от 4.04.26)", "url": "https://max.ru/ozonbluerise/AZ1XugjuO7k" }
+      ]
+    },
+    {
+      "title": "Важные посты по маркетингу",
+      "type": "docx",
+      "category": "Маркетинг",
+      "desc": "Подборка постов про продвижение и маркетинг.",
+      "slug": "marketing",
+      "links": [
+        { "title": "Ассортиментная матрица", "url": "https://t.me/ozonbluerise/2481" },
+        { "title": "Анализ рынка", "url": "https://t.me/ozonbluerise/2510" },
+        { "title": "Выход в новые категории", "url": "https://t.me/ozonbluerise/2569" },
+        { "title": "Калькулятор для определения концентрации рынка", "url": "https://axd.semestr.ru/econ/hirschman.php" },
+        { "title": "Анализ рынка (продолжение)", "url": "https://t.me/ozonbluerise/2582" },
+        { "title": "Концепция 4P", "url": "https://t.me/ozonbluerise/1470" },
+        { "title": "Концепция SAVE", "url": "https://t.me/ozonbluerise/2603" },
+        { "title": "S — Solution", "url": "https://t.me/ozonbluerise/2620" },
+        { "title": "A — Access", "url": "https://t.me/ozonbluerise/2648" },
+        { "title": "V — Value", "url": "https://t.me/ozonbluerise/2669" },
+        { "title": "E — Education", "url": "https://t.me/ozonbluerise/2691" },
+        { "title": "Отстройка от рынка", "url": "https://t.me/ozonbluerise/2793" },
+        { "title": "Принципы построения ассортиментной матрицы", "url": "https://t.me/ozonbluerise/2818" },
+        { "title": "Job-to-be-Done — работа, которую человек «нанимает» продукт выполнить", "url": "https://t.me/ozonbluerise/2849" },
+        { "title": "LTV", "url": "https://t.me/ozonbluerise/2880" },
+        { "title": "С чего начать выстраивание бренда", "url": "https://t.me/ozonbluerise/2914" },
+        { "title": "Сегментация", "url": "https://t.me/ozonbluerise/2942" },
+        { "title": "Почему не стоит откладывать работу над маркетинговой стратегией на потом", "url": "https://t.me/ozonbluerise/2957" },
+        { "title": "Как правильно провести опрос среди своей целевой аудитории", "url": "https://max.ru/ozonbluerise/AZziJmO1fws" },
+        { "title": "Эмоциональные и функциональные задачи продукта", "url": "https://max.ru/ozonbluerise/AZ0GMLXcBBc" },
+        { "title": "Важно быть понятным — часть 1", "url": "https://max.ru/ozonbluerise/AZ1OTP89SDo" },
+        { "title": "Важно быть понятным — часть 2", "url": "https://max.ru/ozonbluerise/AZ13tJtVR3Q" },
+        { "title": "Исследование ВБ о разнице в конверсиях при покупке из общей выдачи и поиска", "url": "https://max.ru/ozonbluerise/AZ1TcwfuR9c" },
+        { "title": "Эфир по брендингу для селлеров и основам айдентики", "url": "https://vkvideo.ru/video-231758405_456239092" },
+        { "title": "Кантон. Как найти своего производителя?", "url": "https://max.ru/ozonbluerise/AZ2WYcUzTK0" }
+      ]
+    },
+    {
+      "title": "Важные посты по налогам и финансам",
+      "type": "docx",
+      "category": "Налоги и финансы",
+      "desc": "Налоги, бухгалтерия, финансовые вопросы селлеров.",
+      "slug": "taxes-finance",
+      "links": [
+        { "title": "УСН Доходы-Расходы: кому подходит, что учесть", "url": "https://t.me/ozonbluerise/2516" },
+        { "title": "Нововведения по налогам в 2026 году", "url": "https://t.me/ozonbluerise/2545" },
+        { "title": "Эфир «Ответы на вопросы по налогообложению в 2026 году»", "url": "https://vkvideo.ru/video-231758405_456239057" },
+        { "title": "Выбор системы налогообложения в 2026 году", "url": "https://t.me/ozonbluerise/2608" },
+        { "title": "Как подготовиться к переходу с УСН Доходы на УСН Доходы-Расходы", "url": "https://t.me/ozonbluerise/2626" },
+        { "title": "Как считать налоги селлера и что можно учитывать в расходах", "url": "https://t.me/ozonbluerise/2656" },
+        { "title": "СПП глазами бухгалтера", "url": "https://vkvideo.ru/video-231758405_456239058" },
+        { "title": "Книга продаж — что это такое, как заполнять, кому нужна", "url": "https://t.me/ozonbluerise/2755" },
+        { "title": "Эфир «За что может прилететь от налоговой»", "url": "https://vkvideo.ru/video-231758405_456239060" },
+        { "title": "Льготные ставки УСН в 2026 году, обзор по регионам", "url": "https://t.me/ozonbluerise/2792" },
+        { "title": "Импорт товаров из стран ЕАЭС", "url": "https://t.me/ozonbluerise/2817" },
+        { "title": "Импорт из Китая с точки зрения налогового учёта, валютного контроля и таможенного регулирования", "url": "https://t.me/ozonbluerise/2852" },
+        { "title": "Матрица ответственности RACI", "url": "https://t.me/ozonbluerise/2886" },
+        { "title": "Учёт себестоимости товара для налогового учёта на маркетплейсах", "url": "https://max.ru/ozonbluerise/AZzSr3RyCL8" },
+        { "title": "Как учитывать баллы соинвеста в юнитке и в расчёте налогов УСН", "url": "https://max.ru/ozonbluerise/AZzTkNMSKl8" },
+        { "title": "Учёт финансов для производителей", "url": "https://max.ru/ozonbluerise/AZzscEkOWxU" },
+        { "title": "Как учитывать документы маркетплейсов. Wildberries", "url": "https://max.ru/ozonbluerise/AZ0u93iyUa4" },
+        { "title": "Как учитывать документы маркетплейсов. Ozon", "url": "https://max.ru/ozonbluerise/AZ0QfcTIBMw" },
+        { "title": "Как учитывать документы маркетплейсов. Яндекс Маркет", "url": "https://max.ru/ozonbluerise/AZ18MwfEV7c" }
+      ]
+    },
+    {
+      "title": "Важные посты про нейросети и Claude",
+      "type": "docx",
+      "category": "Нейросети",
+      "desc": "Подборка материалов о применении ИИ и Claude в бизнесе.",
+      "slug": "neural-nets",
+      "links": [
+        { "title": "Быстрый редизайн карточки на маркетплейсах для «предметки»", "url": "https://t.me/ozonbluerise/2535" },
+        { "title": "ИИ для новичков", "url": "https://t.me/ozonbluerise/2584" },
+        { "title": "Сборник промптов от Александра Гусева", "url": "https://clck.ru/3Rde6t" },
+        { "title": "Дизайн за 5 минут «Выделение из толпы»", "url": "https://t.me/ozonbluerise/2595" },
+        { "title": "Рекламный ролик за 5 минут", "url": "https://t.me/ozonbluerise/2627" },
+        { "title": "Редизайн карточек товара", "url": "https://t.me/ozonbluerise/2763" },
+        { "title": "Делаем рекламный ролик для одежды", "url": "https://max.ru/ozonbluerise/AZzl_4B4HKw" },
+        { "title": "Как Александр создавал бота с ежедневной сводкой по Ozon — часть 1", "url": "https://max.ru/ozonbluerise/AZ0l1oWuc5I" },
+        { "title": "Как Александр создавал бота с ежедневной сводкой по Ozon — часть 2", "url": "https://max.ru/ozonbluerise/AZ0p634TRZo" },
+        { "title": "Как Александр сделал репрайсер в Claude", "url": "https://max.ru/ozonbluerise/AZ06TujCY2A" },
+        { "title": "«Научите работать с Claude!»", "url": "https://max.ru/ozonbluerise/AZ1Cm0cid5w" },
+        { "title": "Все про AI-ready карточки по мнению Claude — часть 1", "url": "https://max.ru/ozonbluerise/AZ2XH6k9CJw" },
+        { "title": "Все про AI-ready карточки по мнению Claude — часть 2", "url": "https://max.ru/ozonbluerise/AZ2XH69rSrw" }
+      ]
+    },
+    {
+      "title": "Финансы и мышление",
+      "type": "docx",
+      "category": "Финансы и мышление",
+      "desc": "Материалы о мышлении предпринимателя, стратегии и финансовом подходе.",
+      "slug": "finance-mindset",
+      "links": [
+        { "title": "Как нам мешает то, что нас защищает", "url": "https://max.ru/ozonbluerise/AZ0ALe_jDLQ" },
+        { "title": "Прикладные инструменты работы с будущим", "url": "https://max.ru/ozonbluerise/AZ1MkQ2eQFg" },
+        { "title": "Ответ на запрос «Как прокручивать 10 млн ₽ быстро, с хорошим ROI, удалённо»", "url": "https://max.ru/ozonbluerise/AZ2VKQD6Gd4" }
+      ]
+    },
+    {
+      "title": "Книги, которые рекомендуют наши подписчики",
+      "type": "docx",
+      "category": "Обучение",
+      "desc": "Список книг от сообщества канала. Нажмите на название, чтобы прочитать аннотацию.",
+      "slug": "books",
+      "books": [
+        { "author": "Фредерик Лалу", "title": "Открывая организации будущего", "annotation": "Принципиально новый взгляд на развитие организаций, который поможет перейти на следующий уровень развития и построить сознательную и цельную компанию будущего.\n\nБольшинство книг по организационному развитию написаны для тех, кто стремится овладеть тайнами завоевания рынков и увеличить прибыль. Но то, как мы привыкли управлять, безнадежно устарело. Эта книга — пособие для руководителей, которые почувствовали, что в привычном стиле руководства чего-то недостает.\n\nВ первой части автор предлагает масштабный исторический обзор эволюции организационных парадигм. Во второй — на примере реальных организаций рассказывает, как по-новому, с вниманием к людям, можно организовывать работу. Третья часть рассматривает условия успешного перехода к этой модели." },
+        { "author": "Джефф Смарт, Рэнди Стрит", "title": "Кто", "annotation": "Простое, практичное и эффективное решение того, что The Economist называет «главной проблемой бизнеса сегодня» — неэффективного найма. Приём на работу неподходящего сотрудника обходится компании в сумму, которая превышает размер его заработной платы в 15 раз.\n\nАвторы разработали стратегию найма из 4 шагов:\n1) составление оценочного листа (что мы ждём от сотрудника);\n2) поиск (где брать людей);\n3) отбор лучших (4 интервью);\n4) сделка (как уговорить нужного человека).\n\nКнига основана на интервью с 20 миллиардерами, 30 топ-менеджерами и собственном опыте авторов, которые консультируют компании по найму." },
+        { "author": "Тимоти Голви", "title": "Работа как внутренняя игра. Раскрытие личного потенциала", "annotation": "Книга рассказывает о том, как добиться максимальной самореализации, раскрыть весь потенциал своего «я», легко, без перегрузок и насилия над собой добиться высоких результатов в работе.\n\nНекоторые темы:\n• как получать удовольствие от работы;\n• как преодолеть скуку, связанную с рутинной работой;\n• как объективно оценивать ситуацию на работе и свои перспективы;\n• как правильно отдыхать;\n• как научиться учиться, самостоятельно думать, невзирая на авторитеты и стереотипы." },
+        { "author": "Ким Скотт", "title": "Человеческий фактор", "annotation": "Скотт утверждает, что истинный успех и высокая производительность достигаются тогда, когда руководители и сотрудники понимают и ценят друг друга на человеческом уровне. Она выделяет три ключевых компонента эффективных рабочих отношений:\n\n1. Умение по-настоящему заботиться о людях (Care Personally) — проявлять искренний интерес к сотрудникам, их жизни и благополучию.\n\n2. Готовность бросать вызов (Challenge Directly) — давать конструктивную критику и честную обратную связь. Забота о людях не означает избегание неприятных разговоров.\n\n3. Создание культуры доверия. Сочетание искренней заботы и прямой обратной связи создаёт атмосферу, где люди чувствуют себя безопасно, чтобы рисковать, ошибаться и учиться." },
+        { "author": "Тимур Гагин", "title": "Руководитель-эксперт, или Руководство по эксплуатации человека человеком", "annotation": "Практическое пособие по эффективному управлению организацией. Автор синтезирует подходы из менеджмента, организационной психологии, бихевиоризма, НЛП и теории систем, предлагая более 500 приёмов для решения типичных управленческих задач.\n\nВ книге собраны оригинальные примеры и нестандартные решения по мотивации сотрудников, подбору персонала и наведению порядка в организации.\n\nНекоторые темы:\n• как заставить сотрудников работать успешно и с удовольствием;\n• как подбирать в организацию правильных людей;\n• как покончить с хаосом и навести порядок;\n• как раз и навсегда покончить с постоянными авралами." },
+        { "author": "Александр Прохоров", "title": "Русская модель управления", "annotation": "Прохоров изучает российскую управленческую мифологию: что представляет собой отечественная модель управления, как использовать её особенности, какие черты — миф, а какие — реальность.\n\nКлючевая особенность русской модели управления по Прохорову — чередование двух противоположных режимов:\n\n• Стабильный/застойный — в стабильной фазе жизни общества правила игры не меняются, предприятия растут количественно.\n\n• Нестабильный/аварийно-мобилизационный — в нестабильные годы осваиваются новые технологии, реформируются структуры, в сжатые сроки внедряются инновации.\n\nПереход от стабильности к авралу и обратно воспринимается не как исключение, а как норма жизни команды, бизнеса и страны." },
+        { "author": "Марк Розин", "title": "Восхождение по спирали", "annotation": "Эволюционная модель развития организации, основанная на теории спиральной динамики. С её помощью руководитель может понять, на каком этапе развития находится компания, распознать сигналы зарождающегося внутреннего кризиса и заранее предпринять действия.\n\nНекоторые аспекты модели:\n• Типология корпоративных культур на простом языке: холодные цвета — коллективистские культуры, тёплые — индивидуалистические.\n• Сравнение перехода от одной культуры к другой то с луковицей, то с маятником.\n• Обсуждение ситуации внешнего кризиса: организации склонны жертвовать многими эволюционными достижениями ради выживания.\n\nВ книге собрано множество примеров успешного преодоления кризисов российскими компаниями." },
+        { "author": "Элияху Голдратт и Джефф Кокс", "title": "Цель. Процесс непрерывного совершенствования", "annotation": "Главный герой — директор завода Алекс Рого. Он сталкивается с кризисом: предприятие теряет деньги, заказы срываются, руководство угрожает закрытием. У Алекса есть три месяца, чтобы наладить работу. В отчаянии он обращается к бывшему преподавателю физики Ионе, который задаёт вопрос: «В чём твоя цель?»\n\nНекоторые идеи книги:\n• Цель бизнеса — зарабатывать деньги. Оптимизация каждой части по отдельности разрушает общую систему.\n• Важно не сколько деталей производит цех, а сколько готовой продукции доходит до клиента и превращается в деньги (throughput).\n• Непрерывное совершенствование: после устранения одного ограничения появляется новое слабое звено, поэтому процесс улучшений бесконечен." },
+        { "author": "Рэй Далио", "title": "Принципы изменения мирового порядка", "annotation": "Далио исследует закономерности развития и угасания самых мощных экономик на протяжении последних 500 лет.\n\nНекоторые идеи книги:\n• История циклична: все великие державы проходят схожие этапы — рост, пик, упадок и замена новым лидером.\n• Факторы силы: подъём государства зависит от комбинации инноваций, сильной экономики, стабильной валюты и военной мощи.\n• Экономические циклы: финансовые кризисы и долговые перегрузки — неизбежная часть изменений мирового порядка.\n• Современные сдвиги: мир в стадии перехода, доминирование США ослабевает, Китай и другие страны укрепляют позиции." }
+      ],
+      "footer": "Если вы готовы порекомендовать книгу, напишите @Masha_Pleskach"
+    },
+    {
+      "title": "Материалы Александра Догаева",
+      "type": "docx",
+      "category": "Авторские материалы",
+      "desc": "Сборник материалов и постов Александра Догаева.",
+      "slug": "dogaev",
+      "links": [
+        { "title": "ПРО Бизнес. 1Р и 3Р модели ведения бизнеса", "url": "https://t.me/ozonbluerise/2568" },
+        { "title": "Как формируется прибыль маркетплейсов", "url": "https://t.me/ozonbluerise/2572" },
+        { "title": "Как считать налоги на УСН «Доходы-Расходы»", "url": "https://t.me/ozonbluerise/2574" },
+        { "title": "Разбираемся с соинвестом Ozon", "url": "https://clck.ru/3RdfKr" },
+        { "title": "Три главные составляющие расходов", "url": "https://t.me/ozonbluerise/2607" },
+        { "title": "Отсрочка платежа. Считаем выгоду", "url": "https://t.me/ozonbluerise/2613" },
+        { "title": "Налоги на малый бизнес в США", "url": "https://t.me/ozonbluerise/2640" },
+        { "title": "Медианный возраст", "url": "https://t.me/ozonbluerise/2655" },
+        { "title": "Итоги проекта Solar Wings за 2025 год", "url": "https://t.me/ozonbluerise/2666" },
+        { "title": "Прогноз на 2026 год", "url": "https://t.me/ozonbluerise/2686" },
+        { "title": "Почему отменят УСН для торговли", "url": "https://t.me/ozonbluerise/2688" },
+        { "title": "Почему нет смысла стремиться уравнивать продажи на разных маркетплейсах", "url": "https://t.me/ozonbluerise/2705" },
+        { "title": "Про финмодели", "url": "https://t.me/ozonbluerise/2708" },
+        { "title": "Дилемма Заключённого", "url": "https://t.me/ozonbluerise/2711" },
+        { "title": "Регламенты в компании", "url": "https://t.me/ozonbluerise/2844" },
+        { "title": "Как читать ДРР в Аналитике продвижения Озон", "url": "https://vkvideo.ru/video-231758405_456239061" },
+        { "title": "Комплексная защита бизнеса: авторское право, товарный знак, патент", "url": "https://vkvideo.ru/video-231758405_456239053" },
+        { "title": "Как считать юнит-экономику на Яндекс Маркет (видео)", "url": "https://vkvideo.ru/video-231758405_456239064" },
+        { "title": "Бонусы для регистрации кабинета на Яндекс Маркет", "url": "https://partner.market.yandex.ru/?promocode=MARKET_14621734" },
+        { "title": "Принцип UP or OUT в компаниях", "url": "https://t.me/ozonbluerise/2860" },
+        { "title": "Принцип UP or OUT в компаниях (продолжение)", "url": "https://t.me/ozonbluerise/2879" },
+        { "title": "Матрица управления сотрудниками", "url": "https://t.me/ozonbluerise/2889" },
+        { "title": "Дозволено ли сотруднику ошибаться?", "url": "https://t.me/ozonbluerise/2920" },
+        { "title": "Соотношение Цены и Ценности", "url": "https://t.me/ozonbluerise/2924" },
+        { "title": "Спиральная динамика применительно к команде Solar Wings", "url": "https://t.me/ozonbluerise/2964" },
+        { "title": "Как подключение ОЗЗ 5% влияет на общий ДРР", "url": "https://max.ru/ozonbluerise/AZzxejM7IV4" },
+        { "title": "Самый значимый показатель аналитики", "url": "https://max.ru/ozonbluerise/AZ0J8u69Al8" },
+        { "title": "Как посчитать соинвест конкурентов (видео)", "url": "https://vkvideo.ru/video-231758405_456239085" },
+        { "title": "Стратегический треугольник: выбор верхнеуровневой стратегии", "url": "https://max.ru/ozonbluerise/AZ0PeUInSqE" },
+        { "title": "Эфир на тему эффективности «Звёздных Товаров»", "url": "https://vkvideo.ru/playlist/-231758405_-8/video-231758405_456239090?linked=1" },
+        { "title": "Эфир с Владимиром Воробьевым об отличиях ВБ и Озон", "url": "https://vkvideo.ru/video-231758405_456239091" },
+        { "title": "Логика принятия решений в команде (аналогия с футболом)", "url": "https://t.me/ozonbluerise/3143" }
+      ]
+    },
+    {
+      "title": "Посты про Wildberries",
+      "type": "docx",
+      "category": "Маркетплейсы",
+      "desc": "Подборка ключевых постов про работу с Wildberries.",
+      "slug": "wildberries",
+      "links": [
+        { "title": "Ранжирование на ВБ", "url": "https://t.me/ozonbluerise/2925" },
+        { "title": "Основные ошибки в рекламе ВБ", "url": "https://t.me/ozonbluerise/2951" },
+        { "title": "Акции на ВБ: необходимость или принуждение", "url": "https://t.me/ozonbluerise/2965" },
+        { "title": "Важные изменения на ВБ (от 17.03.2026)", "url": "https://max.ru/ozonbluerise/AZz73d8tMpo" },
+        { "title": "Как продвигать свой товар через Wibes (Вайбс) на WB", "url": "https://max.ru/ozonbluerise/AZ0UvHzLZfQ" },
+        { "title": "Как выбрать продающие ключи на ВБ — часть 1", "url": "https://max.ru/ozonbluerise/AZ1D_o0aLHM" },
+        { "title": "Выкупы на ВБ — когда и зачем", "url": "https://t.me/ozonbluerise/3154" }
+      ]
+    },
+    {
+      "title": "Ссылки на Базу Знаний",
+      "type": "xlsx",
+      "category": "База знаний",
+      "desc": "Полезные статьи из Базы Знаний Ozon.",
+      "slug": "knowledge-base",
+      "links": [
+        { "title": "Комиссии и тарифы", "url": "https://seller-edu.ozon.ru/commissions-tariffs/commissions-tariffs-ozon" },
+        { "title": "Склады, кластеры, регионы", "url": "https://seller-edu.ozon.ru/fbo/warehouses/table-klastery" }
+      ]
+    },
+    {
+      "title": "Наши курсы",
+      "type": "folder",
+      "category": "Обучение",
+      "desc": "Курсы онлайн-школы «Синего Рассвета». Техподдержка и консультации — @BlueRise_Support.",
+      "slug": "courses",
+      "links": [
+        { "title": "PRO Рекламу", "desc": "Для тех, кто хочет оптимизировать рекламные расходы, выстраивать стратегии и понимать, какими инструментами продвижения пользоваться.", "url": "https://bluerise.getcourse.ru/PRO_Reklamu" },
+        { "title": "PRO Логистику", "desc": "Как максимально эффективно выстроить работу с логистикой в своём кабинете.", "url": "https://bluerise.getcourse.ru/PRO_logistics" },
+        { "title": "PRO Аналитику", "desc": "Все значимые нюансы и инструменты, которыми пользуется для анализа Александр Догаев.", "url": "https://bluerise.getcourse.ru/PRO_Analytics" },
+        { "title": "PRO Финансы", "desc": "Юнит-план и юнит-факт, ROI и маржинальность, финансовые отчёты Озона, кредитные инструменты.", "url": "https://bluerise.getcourse.ru/PRO_Finance" },
+        { "title": "Всё про Озон", "desc": "Комплекс курсов PRO Рекламу, PRO Логистику, PRO Аналитику и PRO Финансы по специальной цене.", "url": "https://bluerise.getcourse.ru/all_about_ozon" },
+        { "title": "Грамотный старт на Озон", "desc": "Для селлеров, которые делают первые шаги на Озон и хотят уверенно разобраться во всех основах прибыльного бизнеса.", "url": "https://bluerise.getcourse.ru/GSO_VC" },
+        { "title": "Курс по нейросетям от SXR Studio", "desc": "Для тех, кто хочет научиться генерировать нейро-контент для карточек товара.", "url": "https://bluerise.getcourse.ru/SXR_AI" },
+        { "title": "PRO Дизайн", "desc": "Принципы продающей инфографики, типичные ошибки в дизайне карточек, работа с дизайнерами и оценка их квалификации.", "url": "https://bluerise.getcourse.ru/PRO_design" },
+        { "title": "Бесплатный курс по Яндекс Маркет", "desc": "Серия вебинаров про принципы работы, логистику и продвижение на Яндекс Маркет.", "url": "https://bluerise.getcourse.ru/yama" },
+        { "title": "Бонусы для регистрации кабинета на Яндекс Маркет", "desc": "Промокод MARKET_14621734", "url": "https://partner.market.yandex.ru/?promocode=MARKET_14621734" }
+      ]
+    },
+    {
+      "title": "Наши партнёры",
+      "type": "folder",
+      "category": "Партнёры",
+      "desc": "Сервисы и компании, которым мы доверяем и которых рекомендуем сообществу.",
+      "slug": "partners",
+      "links": [
+        { "title": "Nepsell", "desc": "Сервис аналитики и эффективных продаж на Ozon и Wildberries: логистика и подсорт, финансы, РНП, маркетинг, внешняя аналитика. Резидент Сколково и наш постоянный партнёр. По промокоду СИНИЙ РАССВЕТ — 2 месяца доступа по цене одного.", "url": "https://nepsell.ru/" },
+        { "title": "Патентное бюро «Железно»", "desc": "Защита брендов, патентов и авторских прав. Регистрация интеллектуальной собственности под ключ. Скидка 10% при обращении по ссылке.", "url": "https://t.me/m/5xZUt3ePZmIy" },
+        { "title": "SKEYLO", "desc": "Юридическая компания, которая помогала нам с досудебной претензией к Озону по факту утери поставки. Полная юридическая поддержка в e-commerce. Промокод СИНИЙ РАССВЕТ — скидка 10% на услуги.", "url": "https://t.me/+ewDbQnyswncwNDdi" },
+        { "title": "Markznak", "desc": "Автоматизированный сервис работы с маркировкой Честным Знаком, без которого мы не представляем работу. С готовностью рекомендуем! Ссылка от Синего Рассвета.", "url": "https://mzk.is/r/yLq" },
+        { "title": "Sellium", "desc": "Сервис для работы с SEO и анализом товаров на Ozon. Промокод GNKUPBi6xi6d — 7 дней тестового периода на тарифе Pro.", "url": "https://sellium.pro" },
+        { "title": "Блистро", "desc": "Сеть дарксторов в городах-миллионниках. Помогает организовать экспресс-доставку и работу по стандартному FBS. Ссылка от Синего Рассвета.", "url": "https://t.me/popsoru_bot?start=ozonbluerise" },
+        { "title": "RocketMerix", "desc": "Сервис аналитики нового поколения с внедрённым ИИ-ассистентом. 7 дней бесплатного тестового периода по ссылке от Синего Рассвета.", "url": "https://jarviss.up.railway.app/?utm_source=tg&utm_medium=cpc&utm_campaign=BlueRisePromo" },
+        { "title": "Яндекс Маркет — серия вебинаров", "desc": "Для тех, кто давно хотел выйти на Яндекс Маркет: принципы работы, логистика и продвижение.", "url": "https://bluerise.getcourse.ru/yama" },
+        { "title": "Яндекс Маркет — регистрация кабинета с бонусами", "desc": "Промокод MARKET_14621734.", "url": "https://partner.market.yandex.ru/?promocode=MARKET_14621734" },
+        { "title": "@gptcyber_bot", "desc": "ТГ-бот Александра Гусева, одного из наших авторов. Незаменим в работе с нейросетями: чаты, изображения и видео без VPN.", "url": "https://t.me/gptcyber_bot" }
+      ]
+    },
+    {
+      "title": "Чаты и рубрики Синего Рассвета",
+      "type": "folder",
+      "category": "Сообщество",
+      "desc": "Навигация по каналам, чатам, видео и закрытым площадкам сообщества.",
+      "slug": "chats",
+      "links": [
+        { "title": "«Синий Рассвет» в Telegram", "url": "https://t.me/ozonbluerise" },
+        { "title": "Чат «Синего Рассвета» в Telegram", "url": "https://t.me/+ODIYkJqBR8kzY2Qy" },
+        { "title": "«Синий Рассвет» в MAX", "url": "https://max.ru/ozonbluerise" },
+        { "title": "Чат «Синего Рассвета» в MAX", "url": "https://max.ru/join/2OOgMzgEKAx25K66sBsoglHNoYvDZn_7N3ElOCvotnA" },
+        { "title": "«Хедхантер Синего Рассвета»", "desc": "Чат для публикации вакансий, резюме и объявлений о продаже карточек.", "url": "https://t.me/+4BVTzNehVfw0ZTIy" },
+        { "title": "Чат по Яндекс Маркет в Telegram", "url": "https://t.me/+58qclHZIKac0NjFi" },
+        { "title": "Чат по FBS в Telegram", "url": "https://t.me/+QeHv3Z_SeFY4MDYy" },
+        { "title": "Видео Синего Рассвета в VK", "url": "https://vkvideo.ru/@club231758405" },
+        { "title": "Закрытый канал Александра, Андрея и Ирины на Boosty", "url": "https://boosty.to/bluerise" },
+        { "title": "Чат для связи с Администрацией канала", "url": "http://t.me/ozonbluerise?direct" },
+        { "title": "Проект «В этом вся Соля»", "url": "https://t.me/vetomsola" }
+      ]
+    }
+  ]
+};
+  items = data.items || [];
+  cats = ["Все", ...Array.from(new Set(items.map(i => i.category)))];
+  route();
 }
 
 function render() {
@@ -101,40 +552,26 @@ function render() {
   catsEl.innerHTML = cats.map(c => `
     <button data-cat="${c}" class="px-3 py-1.5 rounded-full text-sm transition ${activeCat === c ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}">${c}</button>
   `).join("");
-  catsEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { activeCat = b.dataset.cat; render(); }));
+  catsEl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    activeCat = b.dataset.cat;
+    if (location.hash && location.hash !== "#/") {
+      history.replaceState(null, "", "#/");
+      document.getElementById("detail-view").classList.add("hidden");
+      document.getElementById("list-view").classList.remove("hidden");
+    }
+    render();
+  }));
 
   const q = query.trim().toLowerCase();
-  function decodeName(u) {
-    try {
-      const m = u.match(/[?&]name=([^&]+)/);
-      if (m) return decodeURIComponent(m[1].replace(/\+/g, " "));
-      return decodeURIComponent(u.split("/").pop().split("?")[0]);
-    } catch (e) { return u; }
+  activeTerms = q ? expandQuery(q) : [];
+
+  if (q) {
+    renderSearchResults(activeTerms);
+    return;
   }
-  function hay(i) {
-    const parts = [i.title, i.desc, i.category];
-    (i.links || []).forEach(l => { parts.push(l.title); parts.push(l.desc); parts.push(l.url); });
-    (i.books || []).forEach(b => { parts.push(b.title); parts.push(b.author); parts.push(b.annotation); });
-    (i.children || []).forEach(c => {
-      if (typeof c === "string") parts.push(decodeName(c));
-      else { parts.push(c.title); parts.push(c.desc); }
-    });
-    return parts.filter(Boolean).join(" \n ").toLowerCase();
-  }
-  // Простое русское "стемминг"-сопоставление: ищем подстроку q;
-  // если не нашли и q длиннее 4 символов — пробуем укороченные префиксы (письмо → письм → пись).
-  function matches(text, q) {
-    if (text.includes(q)) return true;
-    for (let n = q.length - 1; n >= 4; n--) {
-      if (text.includes(q.slice(0, n))) return true;
-    }
-    return false;
-  }
-  const filtered = items.filter(i => {
-    const mc = activeCat === "Все" || i.category === activeCat;
-    const mq = !q || matches(hay(i), q);
-    return mc && mq;
-  });
+
+  document.getElementById("grid").className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+  const filtered = items.filter(i => activeCat === "Все" || i.category === activeCat);
 
   document.getElementById("count").textContent = "Найдено материалов: " + filtered.length;
   document.getElementById("empty").classList.toggle("hidden", filtered.length !== 0);
@@ -143,13 +580,13 @@ function render() {
     const isOpen = expanded.has(i.title);
     const head = `
       <div class="flex items-start justify-between mb-3">
-        <div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">${iconSvg(i.type)}</div>
+        <div style="width:32px;height:32px;flex-shrink:0;" class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">${iconSvg(i.type)}</div>
         ${hasChildren
           ? `<svg class="w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>`
           : `<svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 3h7v7M10 14L21 3M21 14v7H3V3h7"/></svg>`}
       </div>
-      <h3 class="font-medium text-slate-900 leading-snug mb-2">${i.title}</h3>
-      <p class="text-sm text-slate-500 leading-relaxed mb-4 flex-1">${i.desc}</p>
+      <h3 class="font-medium text-slate-900 leading-snug mb-2">${highlight(i.title, activeTerms)}</h3>
+      <p class="text-sm text-slate-500 leading-relaxed mb-4 flex-1">${highlight(i.desc, activeTerms)}</p>
       <div class="text-xs text-slate-400 uppercase tracking-wide">${i.category}${hasChildren ? " · " + i.children.length + " док." : ""}</div>`;
 
     if (hasChildren) {
